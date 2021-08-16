@@ -1,8 +1,9 @@
 
 #include"WindowBase.h"
-#include"DebugTools.h"
+#include<ExString-main/ExString.h>
+#include<DebugTools-main/DebugTools.h>
 
-class GameWindow : public WindowApp
+class GameWindow : public WindowBase
 {
 public:
 
@@ -11,23 +12,26 @@ public:
 
 int main()
 {
-	WindowBase* app[2] = {
-		new WindowApp,
-		new GameWindow
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	WindowBase* pWndList[2] =
+	{
+		new GameWindow,
+		new WindowBase,
 	};
 
-	for (int i = 0; i < _countof(app); ++i)
+	for (int i = 0; i < _countof(pWndList); ++i)
 	{
-		WindowApp* pWnd = app[i];
+		WindowBase* hwnd = pWndList[i];
 
-		if (pWnd->Begin(_T("恐ろしいウィンドウ")))
+		if (hwnd->Begin(ExTString(L"GameWindow No.%d", i)))
 		{
-			pWnd->Show();
-			pWnd->Update();
-			pWnd->MainLoop();
+			hwnd->Show();
+			hwnd->Update();
+			hwnd->MainLoop();
 
-			if (!pWnd->End())
-				ErrorExit((LPTSTR)_T("WindowApp::End"));
+			if (!hwnd->End())
+				ErrorExit((LPTSTR)_T("End Func"));
 		}
 	}
 }
@@ -53,5 +57,5 @@ LRESULT GameWindow::LocalWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpar
 	default:
 		break;
 	}
-	return WindowBase::LocalWndProc(hwnd, msg, wparam, lparam);
+	return WindowFactory::LocalWndProc(hwnd, msg, wparam, lparam);
 }

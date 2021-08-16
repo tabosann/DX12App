@@ -3,7 +3,7 @@
 #include<Windows.h>
 #include<tchar.h>
 
-class WindowBase 
+class WindowFactory
 {
 //メンバ変数
 protected:
@@ -15,11 +15,11 @@ protected:
 //コンストラクタ、デストラクタ
 protected:
 
-	WindowBase();
-	virtual ~WindowBase();
+	WindowFactory();
+	virtual ~WindowFactory();
 
-	WindowBase(const WindowBase&) = delete;
-	WindowBase& operator=(const WindowBase&) = delete;
+	WindowFactory(const WindowFactory&) = delete;
+	WindowFactory& operator=(const WindowFactory&) = delete;
 
 //初期化関連
 protected:
@@ -58,39 +58,60 @@ public:
 	void			SetCreateStruct(const CREATESTRUCT& cs);
 };
 
-class WindowApp : public WindowBase
+class WindowCommander
 {
-//ウィンドウのお仕事内容
-public:
-
-	//ウィンドウプロシージャをオーバーライドし、自由に処理を追加する。
-	LRESULT	LocalWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
-
 //ウィンドウのお仕事準備
 public:
 
-	//初期化
-	bool Begin(LPCTSTR className, int posX = CW_USEDEFAULT, int posY = CW_USEDEFAULT, int width = CW_USEDEFAULT, int height = CW_USEDEFAULT);
+	//初期化時にやっておきたいこと
+	virtual bool Begin(
+		LPCTSTR className, 
+		int		posX   = CW_USEDEFAULT, 
+		int		posY   = CW_USEDEFAULT, 
+		int		width  = CW_USEDEFAULT, 
+		int		height = CW_USEDEFAULT
+	) = 0;
 
 //ウィンドウのお仕事実践
 public:
 
 	//ウィンドウの表示
-	void		 Show() const;
+	void Show(HWND hwnd) const;
 	//WM_PAINTメッセージの送信
-	bool		 Update() const;
+	bool Update(HWND hwnd) const;
 
 	//オーバーライドして中身を各自実装してください。
-	virtual void MainLoop();
+	virtual void MainLoop() = 0;
+
 	//ループ処理のサンプル
-	void		 SampleMainLoop();
+	void SampleMainLoop(HWND hwnd);
 	//ゲームのメインループ実装例
-	void		 SampleGameLoop();
+	void SampleGameLoop(HWND hwnd);
 
 //ウィンドウのお仕事終了
 public:
 
-	//解放処理
+	//解放処理時にやっておきたいこと
+	virtual bool End() = 0;
+};
+
+class WindowBase : public WindowFactory, public WindowCommander
+{
+public:
+
+	bool Begin(
+		LPCTSTR className, 
+		int		posX   = CW_USEDEFAULT, 
+		int		posY   = CW_USEDEFAULT, 
+		int		width  = CW_USEDEFAULT, 
+		int		height = CW_USEDEFAULT
+	);
+
+	void Show() const;
+	bool Update() const;
+
+	void MainLoop();
+
 	bool End();
 };
 

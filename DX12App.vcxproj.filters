@@ -18,10 +18,13 @@
     <ClCompile Include="main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="WindowBase.cpp">
+    <ClCompile Include="DebugTools.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="DebugTools.cpp">
+    <ClCompile Include="WindowFactory.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowCommander.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
