@@ -1,5 +1,16 @@
+# ビルド時に生成されるものは無視
 Debug/
 Release/
 x64/
 .vs/
 *.vcxproj.user
+
+# 一時的に無視するファイル
+*.docx
+
+# 以下は必要なライブラリなので無視しない
+!lib/*
+!lib/Debug/*
+!lib/Release/*
+!lib/x64/Debug/*
+!lib/x64/Release/*
