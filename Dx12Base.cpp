@@ -1,13 +1,9 @@
 
 #include<Dx12Base.h>
-#include<impl\Dx12Tasks_Impl.h>
+#include<impl\Dx12EndTasks_Impl.h>
 #include<DebugTools.h>
 
 using namespace std;
-
-Dx12Base::Dx12Base(HWND hwnd) : _pTask(new Dx12TaskBase(hwnd)) {}
-
-Dx12Base::~Dx12Base() { if (_pTask != nullptr) { delete _pTask; _pTask = nullptr; } }
 
 //--------------------------------------------------------------------------------------------------------------------------
 //
@@ -16,30 +12,34 @@ Dx12Base::~Dx12Base() { if (_pTask != nullptr) { delete _pTask; _pTask = nullptr
 //--------------------------------------------------------------------------------------------------------------------------
 
 // タスクの登録、実行、削除を同時に実行
-#define EXCUTE_ALL_TASK(msg, pTask)\
+#define EXCUTE_TASK_SEQUENCE(msg, pTask)\
 		{								\
 			RegisterTask(msg, pTask);	\
 			ExcuteTask(msg);			\
 			ReleaseTask(msg);			\
 		}
 
-Dx12TaskBase::Dx12TaskBase(HWND hwnd)
-	:_pParam(new Dx12Component(hwnd))
+Dx12TaskBase::Dx12TaskBase(Dx12Component* pCmpt)
+	:_pCmpt(pCmpt)
 {
-	EXCUTE_ALL_TASK(TaskID::CREATE_FACTORY_6,				new Dx12CreateFactory);
-	EXCUTE_ALL_TASK(TaskID::CREATE_DEVICE,					new Dx12CreateDevice);
-	EXCUTE_ALL_TASK(TaskID::CREATE_COMMAND_ALLOC,			new Dx12CreateCmdAlloc);
-	EXCUTE_ALL_TASK(TaskID::CREATE_GRAPHIC_COMMAND_LIST,	new Dx12CreateGraphicCmdList);
-	EXCUTE_ALL_TASK(TaskID::CREATE_COMMAND_QUEUE,			new Dx12CreateCmdQueue);
-	EXCUTE_ALL_TASK(TaskID::CREATE_SWAPCHAIN,				new Dx12CreateSwapChain);
-	EXCUTE_ALL_TASK(TaskID::CREATE_RTV,						new Dx12CreateRtv);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_FACTORY,		new Dx12CreateFactory);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_DEVICE,			new Dx12CreateDevice);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_COMMAND_ALLOC,	new Dx12CreateCmdAlloc);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_COMMAND_LIST,	new Dx12CreateGraphicCmdList);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_COMMAND_QUEUE,	new Dx12CreateCmdQueue);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_SWAPCHAIN,		new Dx12CreateSwapChain);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_RTV,			new Dx12CreateRtv);
+	EXCUTE_TASK_SEQUENCE(TaskID::CREATE_FENCE,			new Dx12CreateFence);
+
+	RegisterTask(TaskID::RENDER_BEGIN, new Dx12RenderBegin);
+	RegisterTask(TaskID::GPU_WAIT, new Dx12GpuWait);
 }
-#undef EXCUTE_ALL_TASK
+#undef EXCUTE_TASK_SEQUENCE
 
 Dx12TaskBase::~Dx12TaskBase()
 {
 	// パラメータの解放
-	if (_pParam != nullptr) { delete _pParam; _pParam = nullptr; }
+	if (_pCmpt != nullptr) { delete _pCmpt; _pCmpt = nullptr; }
 
 	// タスクオブジェクトの解放
 	for (TaskTable::iterator it = _taskTable.begin(); it != _taskTable.end(); ++it)
@@ -48,12 +48,12 @@ Dx12TaskBase::~Dx12TaskBase()
 	_taskTable.clear();
 }
 
-void Dx12TaskBase::RegisterTask(_Key msg, _Task pTask)
+void Dx12TaskBase::RegisterTask(KeyVal msg, TaskVal pTask)
 {
 	_taskTable.insert(TaskElem(msg, pTask));
 }
 
-HRESULT Dx12TaskBase::ExcuteTask(_Key msg)
+HRESULT Dx12TaskBase::ExcuteTask(KeyVal msg)
 {
 	TaskTable::iterator it = _taskTable.find(msg);
 	if (it != _taskTable.end())
@@ -61,7 +61,7 @@ HRESULT Dx12TaskBase::ExcuteTask(_Key msg)
 	return E_ABORT;
 }
 
-void Dx12TaskBase::ReleaseTask(_Key msg)
+void Dx12TaskBase::ReleaseTask(KeyVal msg)
 {
 	TaskTable::iterator it = _taskTable.find(msg);
 	if (it != _taskTable.end())

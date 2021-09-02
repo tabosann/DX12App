@@ -19,7 +19,13 @@ Dx12App& Dx12App::Instance()
 
 void Dx12App::Run()
 {
-	_pDx12Base = new Dx12Base(_hwnd);
+	// タスククラスの登録
+	_pDx12Base = new Dx12Base(new Dx12UserComponent(_hwnd));
+
+	// TODO : あるならユーザ定義のタスクを登録する
+	_pDx12Base->RegisterTask(UserTaskID::IMPL_DX12_IMGUI, nullptr);
+
+	// 
 	this->ShowWindow();
 	this->UpdateWindow();
 	this->MainLoop();
@@ -30,6 +36,10 @@ void Dx12App::MainLoop()
 	MSG msg;
 	while (true)
 	{
+		// ウィンドウが破棄されたらループ脱出
+		if (!IsWindow(_hwnd)) break;
+
+		// ウィンドウプロシージャへ移動
 		if (PeekMessage(&msg, _hwnd, NULL, NULL, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
@@ -37,7 +47,8 @@ void Dx12App::MainLoop()
 			continue;
 		}
 
-		if (!IsWindow(_hwnd)) break;
+		// 待機処理
+		_pDx12Base->ExcuteTask(UserTaskID::IMPL_DX12_IMGUI);
 	}
 }
 

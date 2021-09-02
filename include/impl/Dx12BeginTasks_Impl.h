@@ -4,8 +4,25 @@
 
 // タスククラスを便利に扱うマクロ
 #ifndef TASK_BASE_CLASS
+
+	// ここを変えるだけで、タスクの基底クラスを一斉に変えられる。
 #	define TASK_BASE_CLASS public Dx12TaskBase
+
 #endif
+
+// タスク実装の定型
+class Dx12Sample : TASK_BASE_CLASS
+{
+	virtual HRESULT Task(TaskVal pTaskBase)
+	{
+		Dx12Sample& ref = *static_cast<Dx12Sample*>(pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
+
+		// ここにタスクを実装
+
+		return E_NOTIMPL;
+	}
+};
 
 //----------------------------------------------------------------------------------------------------------------------------------
 // 
@@ -14,19 +31,19 @@
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateFactory : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
 		// ここで'pDx12Base'がDx12FactoryCreatorクラス(自分自身)の型にキャストされると、扱いは'this'ポインタと同じになる。
 		// すると、基底クラスのオブジェクトは継承により、自分自身のオブジェクトでもあるため'ptr'から
 		// 基底クラスのオブジェクトにアクセス可能になる！（ただし、privateメンバにはアクセス不可能）
-		Dx12CreateFactory* p = static_cast<Dx12CreateFactory*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateFactory& ref = static_cast<Dx12CreateFactory&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
 		int flag = NULL;
 #ifdef _DEBUG
 		flag |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
-		return CreateDXGIFactory2(flag, IID_PPV_ARGS((*p)->_factory.ReleaseAndGetAddressOf()));
+		return CreateDXGIFactory2(flag, IID_PPV_ARGS(ref->_factory.ReleaseAndGetAddressOf()));
 	}
 };
 
@@ -37,10 +54,10 @@ class Dx12CreateFactory : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateDevice : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateDevice* p = static_cast<Dx12CreateDevice*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateDevice& ref = static_cast<Dx12CreateDevice&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
 		// デバッグレイヤーの有効化
 		// NOTE : デバイス作成後に有効化すると、デバイスが破棄されてしまうので注意！
@@ -66,7 +83,7 @@ class Dx12CreateDevice : TASK_BASE_CLASS
 		// 自動で使用するビデオカードを決定する
 		for (auto level : featureLevels)
 		{
-			hr = D3D12CreateDevice(nullptr, level, IID_PPV_ARGS((*p)->_device.ReleaseAndGetAddressOf()));
+			hr = D3D12CreateDevice(nullptr, level, IID_PPV_ARGS(ref->_device.ReleaseAndGetAddressOf()));
 			if (SUCCEEDED(hr)) return hr;
 		}
 		return hr;
@@ -80,13 +97,13 @@ class Dx12CreateDevice : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateCmdAlloc : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateCmdAlloc* p = static_cast<Dx12CreateCmdAlloc*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateCmdAlloc& ref = static_cast<Dx12CreateCmdAlloc&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
-		return (*p)->_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-													 IID_PPV_ARGS((*p)->_cmdAlloc.ReleaseAndGetAddressOf()));
+		return ref->_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+													IID_PPV_ARGS(ref->_cmdAlloc.ReleaseAndGetAddressOf()));
 	}
 };
 
@@ -97,13 +114,13 @@ class Dx12CreateCmdAlloc : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateGraphicCmdList : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateGraphicCmdList* p = static_cast<Dx12CreateGraphicCmdList*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateGraphicCmdList& ref = static_cast<Dx12CreateGraphicCmdList&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
-		return (*p)->_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, (*p)->_cmdAlloc.Get(),
-												nullptr, IID_PPV_ARGS((*p)->_cmdList.ReleaseAndGetAddressOf()));
+		return ref->_device->CreateCommandList(	0, D3D12_COMMAND_LIST_TYPE_DIRECT, ref->_cmdAlloc.Get(),
+												nullptr, IID_PPV_ARGS(ref->_cmdList.ReleaseAndGetAddressOf()));
 	}
 };
 
@@ -114,10 +131,10 @@ class Dx12CreateGraphicCmdList : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateCmdQueue : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateCmdQueue* p = static_cast<Dx12CreateCmdQueue*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateCmdQueue& ref = static_cast<Dx12CreateCmdQueue&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
 		// コマンドキューの設定
 		D3D12_COMMAND_QUEUE_DESC desc = {};
@@ -126,7 +143,7 @@ class Dx12CreateCmdQueue : TASK_BASE_CLASS
 		desc.Flags    = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		desc.NodeMask = 0;
 
-		return (*p)->_device->CreateCommandQueue(&desc, IID_PPV_ARGS((*p)->_cmdQueue.ReleaseAndGetAddressOf()));
+		return ref->_device->CreateCommandQueue(&desc, IID_PPV_ARGS(ref->_cmdQueue.ReleaseAndGetAddressOf()));
 	}
 };
 
@@ -137,13 +154,13 @@ class Dx12CreateCmdQueue : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateSwapChain : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateSwapChain* p = static_cast<Dx12CreateSwapChain*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateSwapChain& ref = static_cast<Dx12CreateSwapChain&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
 		RECT rect;
-		GetClientRect((*p)->_hwnd, &rect);
+		GetClientRect(ref->_hwnd, &rect);
 		UINT width	= rect.right - rect.left;
 		UINT height = rect.bottom - rect.top;
 
@@ -163,8 +180,8 @@ class Dx12CreateSwapChain : TASK_BASE_CLASS
 		//そのときのウィンドウサイズに合わせて表示モードも切り替える
 		desc.Flags				= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-		return (*p)->_factory->CreateSwapChainForHwnd((*p)->_cmdQueue.Get(), (*p)->_hwnd, &desc, nullptr, nullptr,
-													  (IDXGISwapChain1**)((*p)->_swapChain.ReleaseAndGetAddressOf()));
+		return ref->_factory->CreateSwapChainForHwnd(ref->_cmdQueue.Get(), ref->_hwnd, &desc, nullptr, nullptr,
+													 (IDXGISwapChain1**)(ref->_swapChain.ReleaseAndGetAddressOf()));
 	}
 };
 
@@ -175,18 +192,18 @@ class Dx12CreateSwapChain : TASK_BASE_CLASS
 //----------------------------------------------------------------------------------------------------------------------------------
 class Dx12CreateRtv : TASK_BASE_CLASS
 {
-	virtual HRESULT Task(_Task pTaskBase)
+	virtual HRESULT Task(TaskVal pTaskBase)
 	{
-		Dx12CreateRtv* p = static_cast<Dx12CreateRtv*>(pTaskBase);
-		if (p == nullptr) return E_ABORT;
+		Dx12CreateRtv& ref = static_cast<Dx12CreateRtv&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
 
 		// スワップチェーンのサイズを取得するために、スワップチェーンの説明文を取得
 		DXGI_SWAP_CHAIN_DESC1 swapChainDesc1;
-		HRESULT hr = (*p)->_swapChain->GetDesc1(&swapChainDesc1);
+		HRESULT hr = ref->_swapChain->GetDesc1(&swapChainDesc1);
 		if (FAILED(hr)) return hr;
 
 		// バックバッファの数だけメモリ領域を確保する
-		(*p)->_backBuffs.resize(swapChainDesc1.BufferCount);
+		ref->_backBuffs.resize(swapChainDesc1.BufferCount);
 
 		// RTV用のディスクリプタヒープを生成(確保)
 		D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
@@ -194,24 +211,24 @@ class Dx12CreateRtv : TASK_BASE_CLASS
 		descHeapDesc.Flags			= D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		descHeapDesc.NumDescriptors	= swapChainDesc1.BufferCount;
 		descHeapDesc.NodeMask		= 0;
-		hr = (*p)->_device->CreateDescriptorHeap(&descHeapDesc,
-												 IID_PPV_ARGS((*p)->_rtvDescHeap.ReleaseAndGetAddressOf()));
+		hr = ref->_device->CreateDescriptorHeap(&descHeapDesc,
+												IID_PPV_ARGS(ref->_rtvDescHeap.ReleaseAndGetAddressOf()));
 
 		D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 		rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 
 		// バックバッファ毎にRTVを作成
-		auto handle			= (*p)->_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
-		auto incrementSize	= (*p)->_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		auto handle			= ref->_rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
+		auto incrementSize	= ref->_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		for (UINT i = 0; i < swapChainDesc1.BufferCount; ++i)
 		{
 			// '_backBuffs[i]'にi番目のバックバッファを生成
-			hr = (*p)->_swapChain->GetBuffer(i, IID_PPV_ARGS((*p)->_backBuffs[i].ReleaseAndGetAddressOf()));
+			hr = ref->_swapChain->GetBuffer(i, IID_PPV_ARGS(ref->_backBuffs[i].ReleaseAndGetAddressOf()));
 			if (FAILED(hr)) return hr;
 
 			// RTVをi番目のバックバッファに生成
-			rtvDesc.Format = (*p)->_backBuffs[i]->GetDesc().Format;
-			(*p)->_device->CreateRenderTargetView((*p)->_backBuffs[i].Get(), &rtvDesc, handle);
+			rtvDesc.Format = ref->_backBuffs[i]->GetDesc().Format;
+			ref->_device->CreateRenderTargetView(ref->_backBuffs[i].Get(), &rtvDesc, handle);
 
 			// 次のバックバッファを参照
 			handle.ptr += incrementSize;
@@ -220,6 +237,16 @@ class Dx12CreateRtv : TASK_BASE_CLASS
 	}
 };
 
-#ifdef TASK_BASE_CLASS
-#	undef TASK_BASE_CLASS
-#endif
+class Dx12CreateFence : TASK_BASE_CLASS
+{
+	virtual HRESULT Task(TaskVal pTaskBase)
+	{
+		Dx12CreateFence& ref = static_cast<Dx12CreateFence&>(*pTaskBase);
+		if (&ref == nullptr) return E_ABORT;
+
+		return ref->_device->CreateFence(ref->_fence.second, D3D12_FENCE_FLAG_NONE,
+										 IID_PPV_ARGS(ref->_fence.first.ReleaseAndGetAddressOf()));
+	}
+};
+
+#include"Dx12UpdateTasks_Impl.h"

@@ -172,7 +172,9 @@
   <ItemGroup>
     <ClInclude Include="include\Dx12App.h" />
     <ClInclude Include="include\Dx12Base.h" />
-    <ClInclude Include="include\impl\Dx12Tasks_Impl.h" />
+    <ClInclude Include="include\impl\Dx12BeginTasks_Impl.h" />
+    <ClInclude Include="include\impl\Dx12EndTasks_Impl.h" />
+    <ClInclude Include="include\impl\Dx12UpdateTasks_Impl.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

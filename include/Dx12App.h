@@ -42,4 +42,26 @@ private:
 
 	// Dx12の初期化を担う（こいつに作成済のウィンドウハンドラを渡すこと）
 	Dx12Base*		_pDx12Base;
+
+	// ユーザ定義のタスク識別番号
+	struct UserTaskID : Dx12Base::TaskID
+	{
+		using TaskID::TaskID;
+		enum _TaskID
+		{
+			IMPL_DX12_IMGUI = LAST_TASK_ID + 1
+		};
+	};
+};
+
+// タスククラスに渡したいパラメータをユーザがここで実装する
+class Dx12UserComponent : public Dx12Component
+{
+public:
+
+	using Dx12Component::Dx12Component;
+
+	FLOAT	_backGroundColor[4];	// RGBA
+
+	// TODO : 立方体の頂点バッファ、インデックスバッファ
 };

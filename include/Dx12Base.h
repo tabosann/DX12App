@@ -1,13 +1,5 @@
 #pragma once
 
-//メンバ変数の宣言と同時に、そのアクセッサを定義
-#define ___IMPL_HANDLE(type, name)\
-		public:																			\
-			Microsoft::WRL::ComPtr<type> _p##name;										\
-		public:																			\
-			type* Get##name() const { return _p##name.Get(); }							\
-			void  Set##name(void* p##name) { _p##name = static_cast<type*>(p##name); }	\
-
 //--------------------------------------------------------------------------------------------------------------------------
 //
 // ◆タスククラスを使ったDx12初期化プログラムの概要
@@ -17,28 +9,9 @@
 //	 - そのパラメータを使ったプログラムを組めるようにしている。
 //
 //--------------------------------------------------------------------------------------------------------------------------
-class Dx12Base;
 class Dx12TaskBase;
 class Dx12Component;
-
-//--------------------------------------------------------------------------------------------------------------------------
-//
-// 初期化されたDx12に、アクセスする手段として用意されたクラス
-//
-//--------------------------------------------------------------------------------------------------------------------------
-class Dx12Base
-{
-public:
-
-	// コンストラクタ、デストラクタ
-	Dx12Base(HWND hwnd);
-	~Dx12Base();
-
-private:
-
-	// Dx12の初期化に必要なタスクが用意されている
-	Dx12TaskBase* _pTask;
-};
+using Dx12Base = Dx12TaskBase;
 
 //--------------------------------------------------------------------------------------------------------------------------
 //
@@ -52,53 +25,73 @@ class Dx12TaskBase
 // タスク型の定義
 protected:
 
-	using _Key		= int;
-	using _Task		= Dx12TaskBase*;
-	using TaskElem	= std::pair<_Key, _Task>;
-	using TaskTable = std::map<_Key, _Task>;
+	using KeyVal	= int;
+	using TaskVal	= Dx12TaskBase*;
+	using TaskElem	= std::pair<KeyVal, TaskVal>;
+	using TaskTable = std::map<KeyVal, TaskVal>;
 
 // コンストラクタ、デストラクタ
 public:
 
 	Dx12TaskBase() = default;
-	Dx12TaskBase(HWND hwnd);
+	Dx12TaskBase(Dx12Component* pCmpt);
 	~Dx12TaskBase();
 
 // タスクの実装時に使用する関数
 public:
 
 	// 派生先でタスクを実装してもらう
-	virtual	HRESULT Task(_Task pTaskBase) { return E_ABORT; }
+	virtual	HRESULT Task(TaskVal pTaskBase) { return E_ABORT; }
 
-	// パラメータにアクセス
-	Dx12Component* operator -> () const { return _pParam; }
+	// コンポーネント(Dx12を構成する材料)にアクセス
+	Dx12Component* operator->() const { return _pCmpt; }
 
 // タスクの管理
-private:
+public:
 
 	// タスクの識別番号
-	enum TaskID
+	struct TaskID
 	{
-		CREATE_FACTORY				= 0x00,
-		CREATE_FACTORY_6			= 0x06,
-		CREATE_DEVICE				= 0x10,
-		CREATE_COMMAND_ALLOC		= 0x20,
-		CREATE_COMMAND_LIST			= 0x30,
-		CREATE_GRAPHIC_COMMAND_LIST	= 0x31,
-		CREATE_COMMAND_QUEUE		= 0x40,
-		CREATE_SWAPCHAIN			= 0x50,
-		CREATE_RTV					= 0x60,
-		CREATE_END					= 0xff
+		enum _TaskID
+		{
+			// 生成に関するタスク
+			CREATE_FACTORY,
+			CREATE_DEVICE,
+			CREATE_COMMAND_ALLOC,
+			CREATE_COMMAND_LIST,
+			CREATE_COMMAND_QUEUE,
+			CREATE_SWAPCHAIN,
+			CREATE_RTV,
+			CREATE_FENCE,
+
+			// 描画を行うタスク
+			RENDER_BEGIN,
+			RENDER_UPDATE,
+			RENDER_END,
+
+			// GPUに関わるタスク
+			GPU_WAIT,
+			GPU_COMPUTE,
+
+			// 無効な値（エラー、失敗などを表す際に使う）
+			INVALID,
+			LAST_TASK_ID = INVALID
+
+		} _task;
+
+		// 相互変換
+		TaskID(int msg) : _task(static_cast<_TaskID>(msg)) {}
+		operator _TaskID() const { return _task; }
 	};
 
 	// 'msg'にタスク'pTask'を登録
-	void			RegisterTask(_Key msg, _Task pTask);
+	void			RegisterTask(KeyVal msg, TaskVal pTask);
 
 	// 'msg'に登録されたタスクを実行
-	HRESULT			ExcuteTask(_Key msg);
+	HRESULT			ExcuteTask(KeyVal msg);
 
 	// 'msg'に登録されたタスクを削除
-	void			ReleaseTask(_Key msg);
+	void			ReleaseTask(KeyVal msg);
 
 // メンバ変数
 private:
@@ -107,7 +100,7 @@ private:
 	TaskTable		_taskTable;
 
 	// Dx12の初期化に必要なパラメータ
-	Dx12Component*	_pParam;
+	Dx12Component*	_pCmpt;
 };
 
 //--------------------------------------------------------------------------------------------------------------------------
@@ -117,6 +110,8 @@ private:
 //--------------------------------------------------------------------------------------------------------------------------
 class Dx12Component
 {
+protected:
+
 	// 略称定義（タイピングの手間を省くため）
 	template<class T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -125,15 +120,23 @@ public:
 
 	Dx12Component(HWND hwnd) : _hwnd(hwnd) {}
 
-	ComPtr<IDXGIFactory6>				_factory;
-	ComPtr<ID3D12Device>				_device;
-	ComPtr<ID3D12CommandAllocator>		_cmdAlloc;
-	ComPtr<ID3D12GraphicsCommandList>	_cmdList;
-	ComPtr<ID3D12CommandQueue>			_cmdQueue;
-	ComPtr<IDXGISwapChain4>				_swapChain;
-	HWND								_hwnd;
-	ComPtr<ID3D12DescriptorHeap>		_rtvDescHeap;
-	std::vector<ComPtr<ID3D12Resource>>	_backBuffs;
+	// 最低限必要なパラメータ
+	ComPtr<IDXGIFactory6>					_factory;
+	ComPtr<ID3D12Device>					_device;
+
+	// 命令を送るために必要なパラメータ
+	ComPtr<ID3D12CommandAllocator>			_cmdAlloc;
+	ComPtr<ID3D12GraphicsCommandList>		_cmdList;
+	ComPtr<ID3D12CommandQueue>				_cmdQueue;
+
+	// ウィンドウへの描画に必要なパラメータ
+	ComPtr<IDXGISwapChain4>					_swapChain;
+	HWND									_hwnd;
+	ComPtr<ID3D12DescriptorHeap>			_rtvDescHeap;
+	std::vector< ComPtr<ID3D12Resource> >	_backBuffs;
+
+	// 同期処理に必要なパラメータ
+	std::pair<ComPtr<ID3D12Fence>, UINT64>	_fence;
 };
 
 #if false
@@ -152,3 +155,5 @@ private:
 #endif
 
 #undef ___IMPL_HANDLE
+
+#include"impl\Dx12BeginTasks_Impl.h"
