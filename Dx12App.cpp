@@ -23,7 +23,7 @@ void Dx12App::Run()
 	_pDx12Base = new Dx12Base(new Dx12UserComponent(_hwnd));
 
 	// TODO : あるならユーザ定義のタスクを登録する
-	_pDx12Base->RegisterTask(UserTaskID::IMPL_DX12_IMGUI, nullptr);
+	_pDx12Base->RegisterTask(UserTaskID::IMGUI_DX12_INIT, nullptr);
 
 	// 
 	this->ShowWindow();
@@ -48,7 +48,7 @@ void Dx12App::MainLoop()
 		}
 
 		// 待機処理
-		_pDx12Base->ExcuteTask(UserTaskID::IMPL_DX12_IMGUI);
+		_pDx12Base->ExcuteTask(UserTaskID::IMGUI_DX12_INIT);
 	}
 }
 

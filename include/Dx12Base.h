@@ -44,7 +44,7 @@ public:
 	virtual	HRESULT Task(TaskVal pTaskBase) { return E_ABORT; }
 
 	// コンポーネント(Dx12を構成する材料)にアクセス
-	Dx12Component* operator->() const { return _pCmpt; }
+	Dx12Component*	operator->() const { return _pCmpt; }
 
 // タスクの管理
 public:
@@ -82,16 +82,17 @@ public:
 		// 相互変換
 		TaskID(int msg) : _task(static_cast<_TaskID>(msg)) {}
 		operator _TaskID() const { return _task; }
-	};
+
+	}; /* struct TaskID */
 
 	// 'msg'にタスク'pTask'を登録
-	void			RegisterTask(KeyVal msg, TaskVal pTask);
+	void	RegisterTask(KeyVal msg, TaskVal pTask);
 
 	// 'msg'に登録されたタスクを実行
-	HRESULT			ExcuteTask(KeyVal msg);
+	HRESULT	ExcuteTask(KeyVal msg);
 
 	// 'msg'に登録されたタスクを削除
-	void			ReleaseTask(KeyVal msg);
+	void	ReleaseTask(KeyVal msg);
 
 // メンバ変数
 private:

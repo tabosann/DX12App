@@ -1,3 +1,3 @@
-# 開発版 ver1.23
+# 開発版 ver1.24
 
-Last Update : 31/08/2021
+Last Update : 02/09/2021
